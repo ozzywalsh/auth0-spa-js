@@ -512,4 +512,36 @@ describe('Auth0Client', () => {
       value: originalUserAgent
     });
   });
+
+  it('sends custom options through to the token endpoint', async () => {
+    const auth0 = setup({
+      useRefreshTokens: true
+    });
+
+    await login(auth0, true, { refresh_token: 'a_refresh_token' });
+
+    mockFetch.mockResolvedValueOnce(
+      fetchResponse(true, {
+        id_token: 'my_id_token',
+        refresh_token: 'my_refresh_token',
+        access_token: 'my_access_token',
+        expires_in: 86400
+      })
+    );
+
+    const access_token = await auth0.getTokenSilently({
+      ignoreCache: true,
+      customParam: 'hello world'
+    });
+
+    expect(JSON.parse(mockFetch.mock.calls[1][1].body)).toEqual({
+      redirect_uri: 'my_callback_url',
+      client_id: 'auth0_client_id',
+      grant_type: 'refresh_token',
+      refresh_token: 'a_refresh_token',
+      customParam: 'hello world'
+    });
+
+    expect(access_token).toEqual('my_access_token');
+  });
 });
